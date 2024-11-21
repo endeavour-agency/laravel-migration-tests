@@ -1,0 +1,36 @@
+name: PHPUnit
+
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        php: [8.2, 8.3]
+        dependency-version: [prefer-lowest, prefer-stable]
+
+    name: P${{ matrix.php }} - ${{ matrix.dependency-version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Start PHP container
+        run: docker compose up -d php-${{ matrix.php }}
+
+      - name: Install dependencies
+        run: docker compose exec php-${{ matrix.php }} composer update --${{ matrix.dependency-version }} --no-interaction
+
+      - name: Execute tests
+        run: docker compose exec php-${{ matrix.php }} vendor/bin/phpunit --configuration=phpunit.xml --no-coverage
+
+      - name: Stop PHP container
+        run: docker compose down php-${{ matrix.php }}

@@ -1,0 +1,24 @@
+services:
+  php-8.2:
+    build:
+      dockerfile: docker/php-8.2/Dockerfile
+    environment:
+      - COMPOSER_MEMORY_LIMIT=-1
+    volumes:
+      - ./src:/var/www/html/src
+      - ./tests:/var/www/html/tests
+      - ./composer.json:/var/www/html/composer.json
+      - ./phpunit.xml:/var/www/html/phpunit.xml
+      - ./testbench.yaml:/var/www/html/testbench.yaml
+
+  php-8.3:
+    extends:
+      service: php-8.2
+    build:
+      dockerfile: docker/php-8.3/Dockerfile
+
+  local:
+    extends:
+      service: php-8.3
+    volumes:
+      - .:/var/www/html

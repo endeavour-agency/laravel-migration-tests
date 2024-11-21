@@ -1,0 +1,19 @@
+stages:
+  - test
+
+phpunit:
+  image: docker
+  script:
+    - docker compose up -d php-$PHP_VERSION
+    - docker compose exec -T php-$PHP_VERSION composer install --quiet  $PREFER_LOWEST
+    - docker compose exec -T php-$PHP_VERSION vendor/bin/phpunit --coverage-text --colors=never --stderr
+  after_script:
+    - docker compose down --remove-orphans
+  only:
+    - merge_requests
+  except:
+    - schedules
+  parallel:
+    matrix:
+      - PHP_VERSION: ["8.2", "8.3"]
+        PREFER_LOWEST: ["", "--prefer-lowest"]

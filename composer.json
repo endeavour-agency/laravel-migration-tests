@@ -1,0 +1,50 @@
+{
+    "version": "0.1.0",
+    "name": "endeavour-agency/laravel-migration-tests",
+    "description": "Provides tools for integration testing Laravel migrations.",
+    "type": "library",
+    "license": "MIT",
+    "homepage": "https://github.com/endeavour-agency/laravel-migration-tests",
+    "keywords": [
+        "laravel",
+        "query",
+        "migrations",
+        "migration",
+        "test",
+        "queries",
+        "database"
+    ],
+    "authors": [
+        {
+            "name": "Dennis Koster",
+            "email": "dennis.koster@endeavour.nl",
+            "homepage": "https://github.com/dennis-koster"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "EndeavourAgency\\LaravelMigrationTests\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^11"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.3",
+        "mockery/mockery": "^1.6",
+        "orchestra/testbench": "^9"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "EndeavourAgency\\LaravelMigrationTests\\Providers\\LaravelMigrationTestsProvider"
+            ]
+        }
+    }
+}
