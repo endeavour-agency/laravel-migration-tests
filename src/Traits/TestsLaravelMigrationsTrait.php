@@ -7,35 +7,39 @@ namespace EndeavourAgency\LaravelMigrationTests\Traits;
 use Artisan;
 use Closure;
 use Illuminate\Database\Migrations\Migrator;
-use Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
+use InvalidArgumentException;
 
 trait TestsLaravelMigrationsTrait
 {
-    use InteractsWithTestCaseLifecycle;
+    /**
+     * The Illuminate application instance.
+     *
+     * @var \Illuminate\Foundation\Application
+     */
+    protected $app;
 
-    protected string $migrationUnderTest;
+    /** @var array<string, string> */
+    protected array $migrationFiles;
+
+    /** @var array<string, string> */
+    protected array $foundMigrationFiles = [];
 
     protected function testMigration(
-        string $migrationUnderTest,
-        Closure $setup,
+        string $migration,
         Closure $tests,
+        Closure | null $setup = null,
     ): void {
-        // Reset database
-        $this
-            ->migrationUnderTest($migrationUnderTest)
-            ->wipeDb();
-
         // Migrate database up til the point of the migration under test
-        $migrationsBefore = $this->collectMigrationsBefore();
-        $this->getMigrator()->runPending($migrationsBefore);
+        $this->runMigrationsBefore($migration);
 
         // Run user specified setup work
-        $setup();
+        if ($setup !== null) {
+            $setup();
+        }
 
         // Run the migration under test
-        $migrationUnderTest = $this->collectMigrationUnderTest();
-        $this->getMigrator()->runPending([$migrationUnderTest]);
+        $this->runMigration($migration);
 
         // Run user specified tests
         $tests();
@@ -45,19 +49,7 @@ trait TestsLaravelMigrationsTrait
         RefreshDatabaseState::$migrated = false;
     }
 
-    protected function getMigrator(): Migrator
-    {
-        return $this->app->make('migrator');
-    }
-
-    protected function migrationUnderTest(string $migrationUnderTest): self
-    {
-        $this->migrationUnderTest = $migrationUnderTest;
-
-        return $this;
-    }
-
-    protected function wipeDb(): self
+    protected function wipeDatabase(): self
     {
         Artisan::call('db:wipe');
         Artisan::call('migrate:install');
@@ -65,64 +57,87 @@ trait TestsLaravelMigrationsTrait
         return $this;
     }
 
+    /**
+     * @return array<string, string>
+     */
     protected function getMigrationFiles(): array
     {
+        if (isset($this->migrationFiles)) {
+            return $this->migrationFiles;
+        }
+
         $migrator             = $this->getMigrator();
         $migrationDirectories = array_merge($migrator->paths(), [database_path('migrations')]);
 
-        return $migrator->getMigrationFiles($migrationDirectories);
+        return $this->migrationFiles = $migrator->getMigrationFiles($migrationDirectories);
     }
 
-    protected function collectMigrationsBefore(): array
+    protected function runMigration(string $migration): self
     {
-        $migrationUnderTestFound = false;
+        $migrationUnderTest = $this->findMigrationFile($migration);
+        $this->getMigrator()->runPending([$migrationUnderTest]);
 
-        return $this->filterMigrationFiles(
-            $this->getMigrationFiles(),
-            function ($migrationName) use (&$migrationUnderTestFound): bool {
-                if (
-                    $migrationUnderTestFound
-                    || $migrationName === $this->migrationUnderTest
-                ) {
-                    $migrationUnderTestFound = true;
-
-                    return false;
-                }
-
-                return true;
-            }
-        );
+        return $this;
     }
 
-    protected function collectMigrationUnderTest(): string
+    protected function runMigrationsBefore(string $migration): self
     {
-        $foundMigration = $this->filterMigrationFiles(
-            $this->getMigrationFiles(),
-            function ($migrationName): bool {
-                return $migrationName === $this->migrationUnderTest;
-            }
-        );
+        $migrations = $this->collectMigrationsBefore($migration);
 
-        return reset($foundMigration);
+        // Reset database
+        $this->wipeDatabase();
+
+        $this->getMigrator()->runPending($migrations);
+
+        return $this;
     }
 
     /**
-     * @param array<string, string> $migrationFiles
-     * @param Closure(string $migrationName, string $migrationFile): bool $filterMethod
-     * @return array
+     * @param string $migration
+     * @return array<string, string>
      */
-    protected function filterMigrationFiles(
-        array $migrationFiles,
-        Closure $filterMethod,
-    ): array {
-        $filtered = [];
+    protected function collectMigrationsBefore(string $migration): array
+    {
+        $migration = $this->findMigrationFile($migration);
 
-        foreach ($migrationFiles as $migrationName => $migrationFile) {
-            if ($filterMethod($migrationName, $migrationFile)) {
-                $filtered[$migrationName] = $migrationFile;
+        $migrationsBefore = [];
+
+        foreach ($this->getMigrationFiles() as $migrationName => $migrationFile) {
+            if ($migrationFile === $migration) {
+                break;
             }
+
+            $migrationsBefore[$migrationName] = $migrationFile;
         }
 
-        return $filtered;
+        return $migrationsBefore;
+    }
+
+    protected function findMigrationFile(string $migration): string | null
+    {
+        $cacheKey = $migration;
+
+        // First check if we have already searched for this migration
+        if (array_key_exists($cacheKey, $this->foundMigrationFiles)) {
+            return $this->foundMigrationFiles[$cacheKey];
+        }
+
+        $migrationFiles = $this->getMigrationFiles();
+
+        // Provided migration might be a file name
+        if (str_ends_with($migration, '.php')) {
+            $migration = array_search($migration, $this->getMigrationFiles());
+        }
+
+        if (array_key_exists($migration, $migrationFiles)) {
+            return $this->foundMigrationFiles[$cacheKey] =  $migrationFiles[$migration];
+        }
+
+        throw new InvalidArgumentException('Could not find migration file ' . $cacheKey);
+    }
+
+    protected function getMigrator(): Migrator
+    {
+        return $this->app->make('migrator');
     }
 }

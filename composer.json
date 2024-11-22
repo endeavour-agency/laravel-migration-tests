@@ -1,5 +1,5 @@
 {
-    "version": "0.1.0",
+    "version": "0.2.0",
     "name": "endeavour-agency/laravel-migration-tests",
     "description": "Provides tools for integration testing Laravel migrations.",
     "type": "library",
@@ -39,12 +39,5 @@
         "phpunit/phpunit": "^11.3",
         "mockery/mockery": "^1.6",
         "orchestra/testbench": "^9"
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "EndeavourAgency\\LaravelMigrationTests\\Providers\\LaravelMigrationTestsProvider"
-            ]
-        }
     }
 }

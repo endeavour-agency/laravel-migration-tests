@@ -10,9 +10,11 @@ let you do setup work, run the migration under test, and then let you do your as
 
 declare(strict_types=1);
 
-namespace Tests\Integration\Migrations;
+namespace Tests\Migrations;
 
-use EndeavourAgency\LaravelMigrationTests\Traits\TestsLaravelMigrationsTrait;use Illuminate\Foundation\Testing\TestCase;use PHPUnit\Framework\Attributes\Test;
+use EndeavourAgency\LaravelMigrationTests\Traits\TestsLaravelMigrationsTrait;
+use Illuminate\Foundation\Testing\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 class ExampleMigrationTest extends TestCase
 {
@@ -23,7 +25,7 @@ class ExampleMigrationTest extends TestCase
     {
         $this->testMigration(
             '2024_05_29_083854_rename_birth_day_column_to_date_of_birth_on_users_table',
-            function () {
+            setup: function () {
                 // Setup
                 DB::table('users')->insert([
                     'id'        => 15,
@@ -31,7 +33,7 @@ class ExampleMigrationTest extends TestCase
                     'birth_day' => '1990-02-01',
                 ]);
             },
-            function () {
+            tests: function () {
                 // Tests
                 static::assertDatabaseHas('users', [
                     'id'            => 15,

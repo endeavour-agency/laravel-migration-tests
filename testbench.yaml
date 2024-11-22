@@ -1,4 +1,2 @@
 providers:
- - EndeavourAgency\LaravelQueryInsights\Providers\LaravelQueryInsightsProvider
- - Nuwave\Lighthouse\LighthouseServiceProvider
- - Nuwave\Lighthouse\Testing\TestingServiceProvider
+ - Tests\Providers\LaravelMigrationsTestsTestProvider
