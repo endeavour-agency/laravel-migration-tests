@@ -4,6 +4,7 @@ export composerflags :=
 test-all:
 	@make test php=8.2 composerflags="--quiet"
 	@make test php=8.3 composerflags="--quiet"
+	@make test php=8.4 composerflags="--quiet"
 
 test:
 	@make up
