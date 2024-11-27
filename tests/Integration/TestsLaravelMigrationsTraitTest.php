@@ -25,13 +25,6 @@ class TestsLaravelMigrationsTraitTest extends TestCase
     {
         $this->testMigration(
             '2024_11_22_110000_rename_name_to_title_on_books_table',
-            tests: function () {
-                static::assertDatabaseHas('books', [
-                    'id'     => 15,
-                    'title'  => 'Harry Potter and the Half-Blood Prince',
-                    'author' => 'J.K. Rowling',
-                ]);
-            },
             setup: function () {
                 DB::table('books')->insert([
                     'id'     => 15,
@@ -40,6 +33,13 @@ class TestsLaravelMigrationsTraitTest extends TestCase
                 ]);
 
                 static::assertFalse(RefreshDatabaseState::$migrated);
+            },
+            tests: function () {
+                static::assertDatabaseHas('books', [
+                    'id'     => 15,
+                    'title'  => 'Harry Potter and the Half-Blood Prince',
+                    'author' => 'J.K. Rowling',
+                ]);
             }
         );
     }
@@ -101,5 +101,27 @@ class TestsLaravelMigrationsTraitTest extends TestCase
                 static::fail('Test function should not be executed');
             },
         );
+    }
+
+    #[Test]
+    public function it_runs_migrations_before_specified_migration(): void
+    {
+        $this->runMigrationsBefore('2024_11_22_110000_rename_name_to_title_on_books_table');
+
+        DB::table('books')->insert([
+            'id'     => 15,
+            'name'   => 'Harry Potter and the Half-Blood Prince',
+            'author' => 'J.K. Rowling',
+        ]);
+
+        static::assertFalse(RefreshDatabaseState::$migrated);
+
+        $this->runNextMigration();
+
+        static::assertDatabaseHas('books', [
+            'id'     => 15,
+            'title'  => 'Harry Potter and the Half-Blood Prince',
+            'author' => 'J.K. Rowling',
+        ]);
     }
 }

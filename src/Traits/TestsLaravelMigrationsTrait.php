@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace EndeavourAgency\LaravelMigrationTests\Traits;
 
-use Artisan;
 use Closure;
 use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
@@ -27,8 +26,8 @@ trait TestsLaravelMigrationsTrait
 
     protected function testMigration(
         string $migration,
-        Closure $tests,
         Closure | null $setup = null,
+        Closure | null $tests = null,
     ): void {
         // Migrate database up til the point of the migration under test
         $this->runMigrationsBefore($migration);
@@ -42,17 +41,15 @@ trait TestsLaravelMigrationsTrait
         $this->runMigration($migration);
 
         // Run user specified tests
-        $tests();
-
-        // Set migration status to false, so that any subsequent tests
-        // will automatically migrate the database to the latest state
-        RefreshDatabaseState::$migrated = false;
+        if ($tests !== null) {
+            $tests();
+        }
     }
 
     protected function wipeDatabase(): self
     {
-        Artisan::call('db:wipe');
-        Artisan::call('migrate:install');
+        $this->artisan('db:wipe');
+        $this->artisan('migrate:install');
 
         return $this;
     }
@@ -72,6 +69,25 @@ trait TestsLaravelMigrationsTrait
         return $this->migrationFiles = $migrator->getMigrationFiles($migrationDirectories);
     }
 
+    protected function runNextMigration(int $amount = 1): self
+    {
+        $migrationFiles = $this->getMigrationFiles();
+        $ran            = $this->getMigrator()->getRepository()->getRan();
+        $notRan         = array_diff(array_keys($migrationFiles), $ran);
+
+        if (empty($notRan)) {
+            return $this;
+        }
+
+        $migrationsToRun = array_slice($notRan, 0, $amount);
+
+        foreach ($migrationsToRun as $migration) {
+            $this->runMigration($migration);
+        }
+
+        return $this;
+    }
+
     protected function runMigration(string $migration): self
     {
         $migrationUnderTest = $this->findMigrationFile($migration);
@@ -88,6 +104,8 @@ trait TestsLaravelMigrationsTrait
         $this->wipeDatabase();
 
         $this->getMigrator()->runPending($migrations);
+
+        $this->resetDatabaseMigrationState();
 
         return $this;
     }
@@ -130,7 +148,7 @@ trait TestsLaravelMigrationsTrait
         }
 
         if (array_key_exists($migration, $migrationFiles)) {
-            return $this->foundMigrationFiles[$cacheKey] =  $migrationFiles[$migration];
+            return $this->foundMigrationFiles[$cacheKey] = $migrationFiles[$migration];
         }
 
         throw new InvalidArgumentException('Could not find migration file ' . $cacheKey);
@@ -139,5 +157,16 @@ trait TestsLaravelMigrationsTrait
     protected function getMigrator(): Migrator
     {
         return $this->app->make('migrator');
+    }
+
+    /**
+     * Set migration status to false, so that any subsequent tests
+     * will automatically migrate the database to the latest state
+     */
+    protected function resetDatabaseMigrationState(): self
+    {
+        RefreshDatabaseState::$migrated = false;
+
+        return $this;
     }
 }

@@ -1,5 +1,5 @@
 {
-    "version": "0.4.0",
+    "version": "0.5.0",
     "name": "endeavour-agency/laravel-migration-tests",
     "description": "Provides tools for integration testing Laravel migrations.",
     "type": "library",
